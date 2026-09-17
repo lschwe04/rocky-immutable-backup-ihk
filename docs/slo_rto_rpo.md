@@ -12,7 +12,9 @@ Das RPO definiert den maximal tolerierbaren Datenverlust.
 Das RTO definiert die maximale Ausfallzeit, bis die gesicherten Dienste nach einem Totalausfall wieder operativ sind.
 - **Kritikalität:** Bei Ausfall des Webportals entstehen Reputationsverluste. Die Wiederherstellung der Rohdaten muss binnen 5 Minuten möglich sein.
 - **Geschäftliche Anforderung:** Max. 300 Sekunden RTO.
-- **Technische Überwachung:** Das Skript `restore_test.sh` simuliert wöchentlich den Ausfall, stoppt die Dauer des Daten-Restores und wertet diese gegen einen Schwellenwert (`MAX_RTO_SECONDS=300`) aus. Ein Fehlschlag generiert einen Exit-Code für ein angebundenes Monitoring-System.
+- **Technische Überwachung:** Das Skript `restore_test.sh` simuliert wöchentlich den Ausfall, stoppt die Dauer des Daten-Restores und wertet diese gegen einen Schwellenwert (`MAX_RTO_SECONDS=300`) aus. Die Validierung umfasst zudem einen echten Syntax-Check der wiederhergestellten Nginx-Dienste.
 
-## 3. Compliance & WORM (Datensicherheit)
-Um die DSGVO-Konformität sowie den Schutz vor Ransomware sicherzustellen, wird Object Lock im `COMPLIANCE`-Modus für 30 Tage erzwungen. Selbst Root-Administratoren können Backups in diesem Zeitraum weder mutieren noch löschen. Alle Backups werden vor dem Upload durch Restic per AES-256 (Client-Side-Encryption) verschlüsselt.
+## 3. Compliance, WORM & Exfiltrations-Schutz (Datensicherheit)
+- **Ransomware-Schutz:** Um DSGVO-Konformität sicherzustellen, wird Object Lock im `COMPLIANCE`-Modus für 30 Tage erzwungen. Selbst Root-Administratoren können Backups in diesem Zeitraum nicht mutieren.
+- **Verschlüsselung:** Alle Backups werden vor dem Upload durch Restic per AES-256 (Client-Side) sowie durch AWS S3 (Server-Side) verschlüsselt.
+- **Schutz vor Datenabfluss (Exfiltration):** Sollte der lokale Backup-Server kompromittiert und die Credentials gestohlen werden, verhindert eine IAM-Policy mit striktem IP-Whitelisting (`aws:SourceIp`), dass ein Angreifer Backups von außerhalb des definierten Firmennetzwerks herunterladen kann. Zudem blockiert ein Terraform `PublicAccessBlock` jegliche öffentliche S3-Exposition.
