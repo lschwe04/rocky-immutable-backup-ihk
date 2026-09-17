@@ -1,0 +1,7 @@
+---
+- name: Provisionierung und Härtung des IHK Backup-Servers
+  hosts: backup_servers
+  become: true
+  roles:
+    - role: base_hardening
+    - role: backup_system

@@ -1,0 +1,89 @@
+---
+- name: Restic und benötigte Systemwerkzeuge installieren
+  ansible.builtin.dnf:
+    name:
+      - restic
+      - rsync
+      - cronie
+      - jq
+    state: present
+
+- name: Konfigurationsverzeichnis für Restic erstellen
+  ansible.builtin.file:
+    path: /etc/restic
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Credentials-Env-File für Skripte generieren (geschützt)
+  ansible.builtin.template:
+    src: aws_env.j2
+    dest: /etc/restic/aws_credentials.env
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Ausführungsverzeichnis für Skripte erstellen
+  ansible.builtin.file:
+    path: /opt/backup_scripts
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Backup-Skripte bereitstellen
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/{{ item }}"
+    dest: "/opt/backup_scripts/{{ item }}"
+    owner: root
+    group: root
+    mode: '0700'
+  loop:
+    - execute_pull_backup.sh
+    - restore_test.sh
+
+- name: Systemd Service für automatisiertes Backup anlegen
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/restic-backup.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Automatisches Restic WORM Backup in S3
+      After=network-online.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/backup_scripts/execute_pull_backup.sh
+      StandardOutput=append:/var/log/restic_backup.log
+      StandardError=append:/var/log/restic_backup.log
+
+- name: Systemd Timer für tägliches Backup anlegen
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/restic-backup.timer
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Tägliches Backup um 02:00 Uhr
+      
+      [Timer]
+      OnCalendar=*-*-* 02:00:00
+      RandomizedDelaySec=900
+      Persistent=true
+      
+      [Install]
+      WantedBy=timers.target
+
+- name: Systemd Daemon neu laden
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Backup-Timer aktivieren und starten
+  ansible.builtin.systemd:
+    name: restic-backup.timer
+    enabled: true
+    state: started

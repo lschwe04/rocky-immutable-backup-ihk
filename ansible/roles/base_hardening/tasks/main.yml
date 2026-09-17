@@ -1,0 +1,44 @@
+---
+- name: System-Pakete auf den neuesten Stand bringen
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+
+- name: Firewalld installieren und aktivieren
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
+- name: Firewalld Dienst starten und beim Booten aktivieren
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: SSH Dienst in Firewalld zulassen
+  ansible.posix.firewalld:
+    service: ssh
+    permanent: true
+    state: enabled
+    immediate: true
+
+- name: SSH Root-Login deaktivieren
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+
+- name: SSH Passwort-Authentifizierung deaktivieren (nur Key-Auth)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+
+- name: SSH Dienst neustarten
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted

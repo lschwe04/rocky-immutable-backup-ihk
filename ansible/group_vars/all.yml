@@ -1,0 +1,7 @@
+---
+# In einer echten Umgebung würden diese Werte mit ansible-vault verschlüsselt werden.
+# Für die Projektstruktur und Ausführbarkeit sind hier Dummy-Werte gesetzt.
+aws_access_key_vault: "AKIAIOSFODNN7EXAMPLE"
+aws_secret_key_vault: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+restic_password_vault: "SuperSicheresResticPasswort2024!"
+restic_repository_url: "s3:s3.eu-central-1.amazonaws.com/ihk-immutable-backup-vault-prod"
